@@ -11,6 +11,9 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
   <meta name="format-detection" content="telephone=no">
   <title>AN ĐỨC - Tra cứu hồ sơ</title>
+  <link rel="preconnect" href="https://script.google.com" crossorigin>
+  <link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
+  <link rel="dns-prefetch" href="//script.google.com">
   <link rel="manifest" href="./manifest.json">
   <link rel="icon" type="image/svg+xml" href="./logo-thon-an-duc.svg">
   <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
@@ -91,6 +94,8 @@
         window.clearTimeout(slowTimer);
         slowTimer = window.setTimeout(showSlow, 12000);
         if(!frame.parentNode){
+          frame.loading = 'eager';
+          frame.fetchPriority = 'high';
           frame.src = url;
           frame.title = 'AN ĐỨC - Tra cứu hồ sơ';
           frame.allow = 'clipboard-read; clipboard-write';
