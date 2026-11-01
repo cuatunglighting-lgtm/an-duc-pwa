@@ -113,7 +113,9 @@
           origin.endsWith('.script.google.com') ||
           origin === 'https://script.googleusercontent.com' ||
           origin.endsWith('.script.googleusercontent.com');
-        if(!trustedOrigin || event.source !== frame.contentWindow) return;
+        // HtmlService có thể lồng thêm iframe trung gian; xác thực origin Google
+        // và giao thức bridge thay vì giả định source luôn là frame.contentWindow.
+        if(!trustedOrigin) return;
 
         if(data.app === 'AN_DUC_BOOT' && data.type === 'ready'){
           showReady();
