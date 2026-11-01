@@ -106,22 +106,32 @@
       // Chỉ tắt màn hình chờ khi ứng dụng bên trong đã khởi tạo giao diện,
       // không dùng iframe.onload vì sự kiện này có thể xảy ra trước khi app sẵn sàng.
       // Đồng thời giữ cầu nối lưu token phiên ở origin PWA.
+      // Google có thể chuyển HtmlService sang host dạng n-....-script.googleusercontent.com
+      // (dấu phân cách trước script là dấu gạch nối, không phải dấu chấm).
+      function isTrustedAppsScriptOrigin(origin){
+        try{
+          var u = new URL(String(origin || ''));
+          if(u.protocol !== 'https:') return false;
+          var h = u.hostname.toLowerCase();
+          return h === 'script.google.com' ||
+            h.endsWith('.script.google.com') ||
+            h === 'script.googleusercontent.com' ||
+            h.endsWith('-script.googleusercontent.com') ||
+            h.endsWith('.script.googleusercontent.com');
+        }catch(e){ return false; }
+      }
       window.addEventListener('message', function(event){
         var data = event.data || {};
         var origin = String(event.origin || '');
-        var trustedOrigin = origin === 'https://script.google.com' ||
-          origin.endsWith('.script.google.com') ||
-          origin === 'https://script.googleusercontent.com' ||
-          origin.endsWith('.script.googleusercontent.com');
         // HtmlService có thể lồng thêm iframe trung gian; xác thực origin Google
-        // và giao thức bridge thay vì giả định source luôn là frame.contentWindow.
-        if(!trustedOrigin) return;
+        // theo hostname HTTPS, không giả định source luôn là frame.contentWindow.
+        if(!isTrustedAppsScriptOrigin(origin) || !event.source) return;
 
         if(data.app === 'AN_DUC_BOOT' && data.type === 'ready'){
           showReady();
           return;
         }
-        if(data.app !== 'AN_DUC_SESSION_BRIDGE_V1' || data.type !== 'request') return;
+        if(data.app !== 'AN_DUC_SESSION_BRIDGE_V1' || data.type !== 'request' || typeof data.id !== 'string' || data.id.length > 100) return;
 
         var response = {app:'AN_DUC_SESSION_BRIDGE_V1', type:'response', id:data.id};
         try{

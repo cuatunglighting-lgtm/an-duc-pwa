@@ -1,4 +1,4 @@
-const CACHE = 'an-duc-pwa-v10-session-bridge-top-30m';
+const CACHE = 'an-duc-pwa-v11-origin-host-fix-30m';
 const ASSETS = [
   './', './index.html', './config.js', './manifest.json',
   './icon-120.png','./icon-152.png','./icon-167.png',
