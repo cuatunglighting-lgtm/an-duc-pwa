@@ -1,4 +1,4 @@
-const CACHE = 'an-duc-pwa-v4';
+const CACHE = 'an-duc-pwa-v9-user-admin-search-30m';
 const ASSETS = [
   './', './index.html', './config.js', './manifest.json',
   './icon-120.png','./icon-152.png','./icon-167.png',

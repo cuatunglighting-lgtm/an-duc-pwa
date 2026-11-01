@@ -28,7 +28,9 @@
     #loadingBox{text-align:center;color:#004188;padding:24px}
     #loading img{width:88px;height:88px;border-radius:18px;display:block;margin:0 auto 16px}
     #loading strong{display:block;font-size:18px;margin-bottom:8px}
-    #loading span{font-size:13px;color:#666}
+    #loading span{font-size:13px;color:#666;display:block;line-height:1.5}
+    #loading small{display:block;margin-top:12px;color:#7b8794;font-size:12px}
+    #retry{display:none;margin:18px auto 0;padding:11px 18px;border:0;border-radius:10px;background:#0866d9;color:#fff;font-weight:700;font-size:14px}
     #error{display:none;position:fixed;inset:0;background:#fff;z-index:3;padding:28px;box-sizing:border-box}
     #error h2{margin:0 0 12px;color:#004188}
     #error p{line-height:1.55;color:#444}
@@ -41,7 +43,9 @@
     <div id="loadingBox">
       <img src="./icon-180.png" alt="AN ĐỨC">
       <strong>AN ĐỨC</strong>
-      <span>Đang mở Tra cứu hồ sơ…</span>
+      <span id="loadingText">Đang kết nối hệ thống AN ĐỨC…</span>
+      <small id="loadingHint">Vui lòng giữ ứng dụng trong khi tải dữ liệu.</small>
+      <button id="retry" type="button">Thử kết nối lại</button>
     </div>
   </div>
   <div id="error">
@@ -58,13 +62,90 @@
         document.getElementById('error').style.display='block';
         return;
       }
-      var frame=document.createElement('iframe');
-      frame.src=url;
-      frame.title='AN ĐỨC - Tra cứu hồ sơ';
-      frame.allow='clipboard-read; clipboard-write';
-      frame.setAttribute('referrerpolicy','no-referrer-when-downgrade');
-      frame.onload=function(){document.getElementById('loading').style.display='none';};
-      document.getElementById('app').appendChild(frame);
+      var loading = document.getElementById('loading');
+      var loadingText = document.getElementById('loadingText');
+      var loadingHint = document.getElementById('loadingHint');
+      var retryButton = document.getElementById('retry');
+      var frame = document.createElement('iframe');
+      var ready = false;
+      var slowTimer = 0;
+
+      function showReady(){
+        if(ready) return;
+        ready = true;
+        window.clearTimeout(slowTimer);
+        loading.style.display = 'none';
+      }
+      function showSlow(){
+        if(ready) return;
+        loadingText.textContent = 'Hệ thống đang phản hồi chậm…';
+        loadingHint.textContent = 'Có thể do kết nối mạng hoặc máy chủ Google. Bạn có thể thử kết nối lại.';
+        retryButton.style.display = 'inline-block';
+      }
+      function loadFrame(){
+        ready = false;
+        retryButton.style.display = 'none';
+        loadingText.textContent = 'Đang kết nối hệ thống AN ĐỨC…';
+        loadingHint.textContent = 'Vui lòng giữ ứng dụng trong khi tải dữ liệu.';
+        loading.style.display = 'flex';
+        window.clearTimeout(slowTimer);
+        slowTimer = window.setTimeout(showSlow, 12000);
+        if(!frame.parentNode){
+          frame.src = url;
+          frame.title = 'AN ĐỨC - Tra cứu hồ sơ';
+          frame.allow = 'clipboard-read; clipboard-write';
+          frame.setAttribute('referrerpolicy','no-referrer-when-downgrade');
+          document.getElementById('app').appendChild(frame);
+        } else {
+          try { frame.contentWindow.location.reload(); }
+          catch(e) { frame.src = url; }
+        }
+      }
+      retryButton.addEventListener('click', loadFrame);
+
+      // Chỉ tắt màn hình chờ khi ứng dụng bên trong đã khởi tạo giao diện,
+      // không dùng iframe.onload vì sự kiện này có thể xảy ra trước khi app sẵn sàng.
+      // Đồng thời giữ cầu nối lưu token phiên ở origin PWA.
+      window.addEventListener('message', function(event){
+        var data = event.data || {};
+        var origin = String(event.origin || '');
+        var trustedOrigin = origin === 'https://script.google.com' ||
+          origin.endsWith('.script.google.com') ||
+          origin === 'https://script.googleusercontent.com' ||
+          origin.endsWith('.script.googleusercontent.com');
+        if(!trustedOrigin || event.source !== frame.contentWindow) return;
+
+        if(data.app === 'AN_DUC_BOOT' && data.type === 'ready'){
+          showReady();
+          return;
+        }
+        if(data.app !== 'AN_DUC_SESSION_BRIDGE_V1' || data.type !== 'request') return;
+
+        var response = {app:'AN_DUC_SESSION_BRIDGE_V1', type:'response', id:data.id};
+        try{
+          var key = 'AN_DUC_SESSION_TOKEN_V1';
+          if(data.action === 'get') {
+            response.token = localStorage.getItem(key) || '';
+            response.success = true;
+          } else if(data.action === 'set') {
+            var tokenValue = String(data.value || '');
+            if(!tokenValue) throw new Error('Token phiên rỗng.');
+            localStorage.setItem(key, tokenValue);
+            response.success = localStorage.getItem(key) === tokenValue;
+            if(!response.success) throw new Error('Không xác minh được việc lưu phiên.');
+          } else if(data.action === 'remove') {
+            localStorage.removeItem(key);
+            response.success = localStorage.getItem(key) === null;
+            if(!response.success) throw new Error('Không xác minh được việc xóa phiên.');
+          } else return;
+        }catch(storageError){
+          response.success = false;
+          response.token = '';
+          response.error = String(storageError && storageError.message || storageError);
+        }
+        event.source.postMessage(response, event.origin);
+      });
+      loadFrame();
     })();
     if('serviceWorker' in navigator){
       window.addEventListener('load',function(){
