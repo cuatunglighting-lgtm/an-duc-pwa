@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#004188">
+  <meta name="application-name" content="AN ĐỨC">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="AN ĐỨC">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="format-detection" content="telephone=no">
+  <title>AN ĐỨC - Tra cứu hồ sơ</title>
+  <link rel="preconnect" href="https://script.google.com" crossorigin>
+  <link rel="preconnect" href="https://script.googleusercontent.com" crossorigin>
+  <link rel="dns-prefetch" href="//script.google.com">
+  <link rel="manifest" href="./manifest.json">
+  <link rel="icon" type="image/svg+xml" href="./logo-thon-an-duc.svg">
+  <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
+  <link rel="icon" type="image/png" sizes="512x512" href="./icon-512.png">
+  <link rel="apple-touch-icon" sizes="120x120" href="./icon-120.png">
+  <link rel="apple-touch-icon" sizes="152x152" href="./icon-152.png">
+  <link rel="apple-touch-icon" sizes="167x167" href="./icon-167.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="./icon-180.png">
+  <style>
+    html,body{margin:0;width:100%;height:100%;background:#fff;overflow:hidden}
+    body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Arial,sans-serif}
+    #app{position:fixed;inset:0;width:100%;height:100%;background:#fff}
+    iframe{display:block;border:0;width:100%;height:100%;background:#fff}
+    #loading{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:#fff;z-index:2}
+    #loadingBox{text-align:center;color:#004188;padding:24px}
+    #loading img{width:88px;height:88px;border-radius:18px;display:block;margin:0 auto 16px}
+    #loading strong{display:block;font-size:18px;margin-bottom:8px}
+    #loading span{font-size:13px;color:#666;display:block;line-height:1.5}
+    #loading small{display:block;margin-top:12px;color:#7b8794;font-size:12px}
+    #retry{display:none;margin:18px auto 0;padding:11px 18px;border:0;border-radius:10px;background:#0866d9;color:#fff;font-weight:700;font-size:14px}
+    #error{display:none;position:fixed;inset:0;background:#fff;z-index:3;padding:28px;box-sizing:border-box}
+    #error h2{margin:0 0 12px;color:#004188}
+    #error p{line-height:1.55;color:#444}
+    #error code{display:block;word-break:break-all;background:#f3f5f7;padding:12px;border-radius:8px;font-size:12px}
+  </style>
+</head>
+<body>
+  <div id="app"></div>
+  <div id="loading">
+    <div id="loadingBox">
+      <img src="./icon-180.png" alt="AN ĐỨC">
+      <strong>AN ĐỨC</strong>
+      <span id="loadingText">Đang kết nối hệ thống AN ĐỨC…</span>
+      <small id="loadingHint">Vui lòng giữ ứng dụng trong khi tải dữ liệu.</small>
+      <button id="retry" type="button">Thử kết nối lại</button>
+    </div>
+  </div>
+  <div id="error">
+    <h2>Chưa cấu hình Web App</h2>
+    <p>Mở file <b>config.js</b> và dán URL triển khai Apps Script kết thúc bằng <b>/exec</b>.</p>
+    <code>APP_URL = "https://script.google.com/macros/s/....../exec"</code>
+  </div>
+  <script src="./config.js"></script>
+  <script>
+    (function(){
+      var url = window.AN_DUC_CONFIG && window.AN_DUC_CONFIG.APP_URL;
+      if(!url || url.indexOf('/exec') === -1){
+        document.getElementById('loading').style.display='none';
+        document.getElementById('error').style.display='block';
+        return;
+      }
+      var loading = document.getElementById('loading');
+      var loadingText = document.getElementById('loadingText');
+      var loadingHint = document.getElementById('loadingHint');
+      var retryButton = document.getElementById('retry');
+      var frame = document.createElement('iframe');
+      var ready = false;
+      var slowTimer = 0;
+
+      function showReady(){
+        if(ready) return;
+        ready = true;
+        window.clearTimeout(slowTimer);
+        loading.style.display = 'none';
+      }
+      function showSlow(){
+        if(ready) return;
+        loadingText.textContent = 'Hệ thống đang phản hồi chậm…';
+        loadingHint.textContent = 'Có thể do kết nối mạng hoặc máy chủ Google. Bạn có thể thử kết nối lại.';
+        retryButton.style.display = 'inline-block';
+      }
+      function loadFrame(){
+        ready = false;
+        retryButton.style.display = 'none';
+        loadingText.textContent = 'Đang kết nối hệ thống AN ĐỨC…';
+        loadingHint.textContent = 'Vui lòng giữ ứng dụng trong khi tải dữ liệu.';
+        loading.style.display = 'flex';
+        window.clearTimeout(slowTimer);
+        slowTimer = window.setTimeout(showSlow, 12000);
+        if(!frame.parentNode){
+          frame.loading = 'eager';
+          frame.fetchPriority = 'high';
+          frame.src = url;
+          frame.title = 'AN ĐỨC - Tra cứu hồ sơ';
+          frame.allow = 'clipboard-read; clipboard-write';
+          frame.setAttribute('referrerpolicy','no-referrer-when-downgrade');
+          document.getElementById('app').appendChild(frame);
+        } else {
+          try { frame.contentWindow.location.reload(); }
+          catch(e) { frame.src = url; }
+        }
+      }
+      retryButton.addEventListener('click', loadFrame);
+
+      // Chỉ tắt màn hình chờ khi ứng dụng bên trong đã khởi tạo giao diện,
+      // không dùng iframe.onload vì sự kiện này có thể xảy ra trước khi app sẵn sàng.
+      // Đồng thời giữ cầu nối lưu token phiên ở origin PWA.
+      // Google có thể chuyển HtmlService sang host dạng n-....-script.googleusercontent.com
+      // (dấu phân cách trước script là dấu gạch nối, không phải dấu chấm).
+      function isTrustedAppsScriptOrigin(origin){
+        try{
+          var u = new URL(String(origin || ''));
+          if(u.protocol !== 'https:') return false;
+          var h = u.hostname.toLowerCase();
+          return h === 'script.google.com' ||
+            h.endsWith('.script.google.com') ||
+            h === 'script.googleusercontent.com' ||
+            h.endsWith('-script.googleusercontent.com') ||
+            h.endsWith('.script.googleusercontent.com');
+        }catch(e){ return false; }
+      }
+      window.addEventListener('message', function(event){
+        var data = event.data || {};
+        var origin = String(event.origin || '');
+        // HtmlService có thể lồng thêm iframe trung gian; xác thực origin Google
+        // theo hostname HTTPS, không giả định source luôn là frame.contentWindow.
+        if(!isTrustedAppsScriptOrigin(origin) || !event.source) return;
+
+        if(data.app === 'AN_DUC_BOOT' && data.type === 'ready'){
+          showReady();
+          return;
+        }
+        if(data.app !== 'AN_DUC_SESSION_BRIDGE_V1' || data.type !== 'request' || typeof data.id !== 'string' || data.id.length > 100) return;
+
+        var response = {app:'AN_DUC_SESSION_BRIDGE_V1', type:'response', id:data.id};
+        try{
+          var key = 'AN_DUC_SESSION_TOKEN_V1';
+          if(data.action === 'get') {
+            response.token = localStorage.getItem(key) || '';
+            response.success = true;
+          } else if(data.action === 'set') {
+            var tokenValue = String(data.value || '');
+            if(!tokenValue) throw new Error('Token phiên rỗng.');
+            localStorage.setItem(key, tokenValue);
+            response.success = localStorage.getItem(key) === tokenValue;
+            if(!response.success) throw new Error('Không xác minh được việc lưu phiên.');
+          } else if(data.action === 'remove') {
+            localStorage.removeItem(key);
+            response.success = localStorage.getItem(key) === null;
+            if(!response.success) throw new Error('Không xác minh được việc xóa phiên.');
+          } else return;
+        }catch(storageError){
+          response.success = false;
+          response.token = '';
+          response.error = String(storageError && storageError.message || storageError);
+        }
+        event.source.postMessage(response, event.origin);
+      });
+      loadFrame();
+    })();
+    if('serviceWorker' in navigator){
+      window.addEventListener('load',function(){
+        navigator.serviceWorker.register('./service-worker.js').catch(function(){});
+      });
+    }
+  </script>
+</body>
+</html>
