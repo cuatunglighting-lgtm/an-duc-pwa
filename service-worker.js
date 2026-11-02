@@ -1,4 +1,4 @@
-const CACHE = 'an-duc-pwa-v12-soft-delete-restore';
+const CACHE = 'an-duc-pwa-v13-member-household-picker';
 const ASSETS = [
   './', './index.html', './config.js', './manifest.json',
   './icon-120.png','./icon-152.png','./icon-167.png',
