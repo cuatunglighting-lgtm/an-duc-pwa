@@ -1,4 +1,4 @@
-const CACHE = 'an-duc-pwa-v9-xkld-user-edit';
+const CACHE = 'an-duc-pwa-v12-soft-delete-restore';
 const ASSETS = [
   './', './index.html', './config.js', './manifest.json',
   './icon-120.png','./icon-152.png','./icon-167.png',
